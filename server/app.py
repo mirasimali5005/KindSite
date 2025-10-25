@@ -21,7 +21,7 @@ class AdaptPageIn(BaseModel):
     origin: Optional[str] = None
     dom_hints: Optional[list] = None  # reserved for future use
 
-    @field_validator("profile")
+    @field_validator("profile") 
     @classmethod
     def check_profile(cls, v: str) -> str:
         v = (v or "ADHD").upper()
