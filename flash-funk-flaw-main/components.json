@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "tailwind.config.ts",
-    "css": "src/index.css",
+    "css": "flash-funk-flaw-main/src/index.css",
     "baseColor": "slate",
     "cssVariables": true,
     "prefix": ""

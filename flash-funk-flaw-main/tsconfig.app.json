@@ -23,8 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./flash-funk-flaw-main/src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["flash-funk-flaw-main", "src"]
 }
