@@ -1,10 +1,59 @@
+import { useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { FileText, ImageIcon, Sparkles, BookOpen, GraduationCap, Users } from "lucide-react"
+import { FileText, ImageIcon, Sparkles, BookOpen, GraduationCap, Users, Upload, Send, Download } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Card } from "../components/ui/card"
+import { Input } from "../components/ui/input"
 import { ThemeToggle } from "../components/ThemeToggle"
+import { processText, processFile, normalizePdfUrl } from "../lib/accessibility"
 
 export default function LandingPage() {
+  // --- lightweight “try it now” state (same API as Chat) ---
+  const [demoText, setDemoText] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [resultUrl, setResultUrl] = useState<string | null>(null)
+  const [resultMsg, setResultMsg] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const PRESET = "cognitive_impairment" // or swap from saved prefs later
+
+  async function onDemoSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!demoText.trim() || busy) return
+    setBusy(true)
+    setResultMsg(null)
+    setResultUrl(null)
+    try {
+      const r = await processText(demoText.trim(), PRESET)
+      const pdf = normalizePdfUrl(r.pdf_url || "")
+      setResultUrl(pdf || null)
+      setResultMsg(r.modified_content || (pdf ? "PDF ready." : "No summary returned."))
+    } catch (err: any) {
+      setResultMsg(`Error: ${err?.message ?? err}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDemoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f || busy) return
+    setBusy(true)
+    setResultMsg(null)
+    setResultUrl(null)
+    try {
+      const r = await processFile(f, PRESET)
+      const pdf = normalizePdfUrl(r.pdf_url || "")
+      setResultUrl(pdf || null)
+      setResultMsg(r.modified_content || (pdf ? "PDF ready." : "No summary returned."))
+    } catch (err: any) {
+      setResultMsg(`Error: ${err?.message ?? err}`)
+    } finally {
+      setBusy(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Skip to main content link for screen readers */}
@@ -48,42 +97,120 @@ export default function LandingPage() {
       {/* Main Content */}
       <main id="main-content" role="main">
         <section className="container mx-auto px-4 py-16 md:py-24 animate-fade-in-up" aria-labelledby="hero-heading">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary animate-fade-in delay-100">
-              <GraduationCap className="h-4 w-4" />
-              <span>AI-Powered Learning Platform</span>
-            </div>
-            <h1
-              id="hero-heading"
-              className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl text-balance animate-fade-in-up delay-200"
-            >
-              Make Learning{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Accessible
-              </span>{" "}
-              for Everyone
-            </h1>
-            <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty animate-fade-in-up delay-300">
-              Transform educational content into accessible formats tailored to your learning style. Whether you have
-              dyslexia, cognitive_impairment, or other accessibility needs, we empower every learner.
-            </p>
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up delay-400">
-              <Button
-                asChild
-                size="lg"
-                className="text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 hover:shadow-lg"
+          <div className="mx-auto max-w-5xl">
+            <div className="text-center max-w-3xl mx-auto">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary animate-fade-in delay-100">
+                <GraduationCap className="h-4 w-4" />
+                <span>AI-Powered Learning Platform</span>
+              </div>
+              <h1
+                id="hero-heading"
+                className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl text-balance animate-fade-in-up delay-200"
               >
-                <Link to="/auth/sign-up">Start Learning Free</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="text-lg bg-transparent hover:bg-primary/10 transition-all hover:scale-105"
-              >
-                <Link to="/auth/login">Sign In</Link>
-              </Button>
+                Make Learning{" "}
+                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Accessible
+                </span>{" "}
+                for Everyone
+              </h1>
+              <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty animate-fade-in-up delay-300">
+                Transform educational content into accessible formats tailored to your learning style. Whether you have
+                dyslexia, cognitive impairment, or other accessibility needs, we empower every learner.
+              </p>
+              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up delay-400">
+                <Button
+                  asChild
+                  size="lg"
+                  className="text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105 hover:shadow-lg"
+                >
+                  <Link to="/auth/sign-up">Start Learning Free</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="text-lg bg-transparent hover:bg-primary/10 transition-all hover:scale-105"
+                >
+                  <Link to="/auth/login">Sign In</Link>
+                </Button>
+              </div>
             </div>
+
+            {/* --- Quick demo panel (same API as Chat) --- */}
+            <Card className="mt-10 p-6 md:p-8 border-primary/20">
+              <h3 className="text-xl font-semibold mb-3">Try it now</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Paste a sentence/paragraph or upload a PDF/image— we’ll convert it using your chosen preset
+                (<code>cognitive_impairment</code> by default).
+              </p>
+
+              <form onSubmit={onDemoSubmit} className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={demoText}
+                    onChange={(e) => setDemoText(e.target.value)}
+                    placeholder="Type a small sample text…"
+                    disabled={busy}
+                    aria-label="Sample text to process"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={busy || !demoText.trim()}
+                    className="bg-gradient-to-r from-primary to-accent"
+                    aria-label="Submit sample text"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Process
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf"
+                    className="hidden"
+                    onChange={onDemoFile}
+                    aria-label="Upload file for processing"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={busy}
+                    aria-label="Upload file"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload a file
+                  </Button>
+                  {busy && <span className="text-sm text-muted-foreground">Processing…</span>}
+                </div>
+
+                {(resultMsg || resultUrl) && (
+                  <div className="mt-2 rounded-lg bg-muted/50 p-3 border border-border/50">
+                    {resultMsg && <p className="text-sm mb-2 whitespace-pre-wrap">{resultMsg}</p>}
+                    {resultUrl && (
+                      <div className="flex items-center gap-3">
+                        <Button asChild className="bg-green-600 hover:bg-green-700">
+                          <a href={resultUrl} download target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Accessible PDF
+                          </a>
+                        </Button>
+                        <a
+                          href={resultUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm underline text-green-700"
+                        >
+                          Open in new tab
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </form>
+            </Card>
           </div>
         </section>
 
@@ -166,7 +293,7 @@ export default function LandingPage() {
               Ready to Transform Your Learning?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-2xl mx-auto">
-              Join thousands of learners who are experiencing education the way it should be - accessible, engaging, and
+              Join thousands of learners who are experiencing education the way it should be—accessible, engaging, and
               personalized.
             </p>
             <Button
