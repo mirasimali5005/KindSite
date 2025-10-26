@@ -23,29 +23,26 @@ export async function POST(req: Request) {
 
   let userInstructions = "User's accessibility preferences:\n"
 
-  if (preferences?.has_reading_difficulty) {
-    userInstructions += `- Has reading difficulties (e.g., dyslexia). Use clear, simple language with short sentences and paragraphs.\n`
+  if (preferences?.dyslexia) {
+    userInstructions += `- Has dyslexia (e.g., dyslexia). Use clear, simple language with short sentences and paragraphs.\n`
   }
 
-  if (preferences?.prefers_large_text) {
+  if (preferences?.adhd) {
     userInstructions += `- Prefers larger text. When providing formatted content, emphasize readability.\n`
   }
 
-  if (preferences?.has_motion_sensitivity) {
+  if (preferences?.cognitive_impairment) {
     userInstructions += `- Sensitive to motion. Avoid suggesting animated or moving content.\n`
   }
 
-  if (preferences?.prefers_reduced_motion) {
+  if (preferences?.esl_simple_english) {
     userInstructions += `- Prefers reduced motion in interfaces.\n`
   }
 
-  if (preferences?.has_color_sensitivity) {
+  if (preferences?.visual_impairment) {
     userInstructions += `- Sensitive to bright colors. Suggest softer, more comfortable color palettes.\n`
   }
 
-  if (preferences?.prefers_high_contrast) {
-    userInstructions += `- Prefers high contrast for better visibility.\n`
-  }
 
   // Build system prompt based on user preferences
   let systemPrompt = `You are an accessibility assistant that helps convert inaccessible content (PDFs, images, documents, websites) into more accessible formats. 

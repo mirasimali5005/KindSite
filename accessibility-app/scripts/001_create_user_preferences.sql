@@ -1,12 +1,11 @@
 -- Create user preferences table
 create table if not exists public.user_preferences (
   id uuid primary key references auth.users(id) on delete cascade,
-  has_reading_difficulty boolean default false,
-  has_motion_sensitivity boolean default false,
-  has_color_sensitivity boolean default false,
-  prefers_large_text boolean default false,
-  prefers_reduced_motion boolean default false,
-  prefers_high_contrast boolean default false,
+  dyslexia boolean default false,
+  cognitive_impairment boolean default false,
+  visual_impairment boolean default false,
+  adhd boolean default false,
+  esl_simple_english boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

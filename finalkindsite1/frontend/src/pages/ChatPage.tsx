@@ -24,21 +24,19 @@ interface Message {
 
 type Preferences = {
   id: string
-  has_reading_difficulty: boolean
-  has_motion_sensitivity: boolean
-  has_color_sensitivity: boolean
-  prefers_large_text: boolean
-  prefers_reduced_motion: boolean
-  prefers_high_contrast: boolean
+  dyslexia: boolean
+  cognitive_impairment: boolean
+  visual_impairment: boolean
+  adhd: boolean
+  esl_simple_english: boolean
 }
 
 const DEFAULT_PREFS: Omit<Preferences, "id"> = {
-  has_reading_difficulty: false,
-  has_motion_sensitivity: false,
-  has_color_sensitivity: false,
-  prefers_large_text: false,
-  prefers_reduced_motion: false,
-  prefers_high_contrast: false,
+  dyslexia: false,
+  cognitive_impairment: false,
+  visual_impairment: false,
+  adhd: false,
+  esl_simple_english: false,
 }
 
 export default function ChatPage() {
@@ -77,12 +75,11 @@ export default function ChatPage() {
         if (data) {
           setUserPreferences(data as Preferences)
           setEditPrefs({
-            has_reading_difficulty: !!data.has_reading_difficulty,
-            has_motion_sensitivity: !!data.has_motion_sensitivity,
-            has_color_sensitivity: !!data.has_color_sensitivity,
-            prefers_large_text: !!data.prefers_large_text,
-            prefers_reduced_motion: !!data.prefers_reduced_motion,
-            prefers_high_contrast: !!data.prefers_high_contrast,
+            dyslexia: !!data.dyslexia,
+            cognitive_impairment: !!data.cognitive_impairment,
+            visual_impairment: !!data.visual_impairment,
+            adhd: !!data.adhd,
+            esl_simple_english: !!data.esl_simple_english,
           })
         } else {
           // If no row, prep defaults
@@ -399,12 +396,11 @@ export default function ChatPage() {
                     </Button>
                   </div>
                   <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    {userPreferences?.has_reading_difficulty && <li>✓ Reading support enabled</li>}
-                    {userPreferences?.has_motion_sensitivity && <li>✓ Motion sensitivity mode</li>}
-                    {userPreferences?.has_color_sensitivity && <li>✓ Color sensitivity mode</li>}
-                    {userPreferences?.prefers_large_text && <li>✓ Large text preferred</li>}
-                    {userPreferences?.prefers_reduced_motion && <li>✓ Reduced motion</li>}
-                    {userPreferences?.prefers_high_contrast && <li>✓ High contrast mode</li>}
+                    {userPreferences?.dyslexia && <li>✓ Dyslexia enabled</li>}
+                    {userPreferences?.cognitive_impairment && <li>✓ cognitive_impairment mode</li>}
+                    {userPreferences?.visual_impairment && <li>✓ visual_impairment mode</li>}
+                    {userPreferences?.adhd && <li>✓ Large text preferred</li>}
+                    {userPreferences?.esl_simple_english && <li>✓ Reduced motion</li>}
                     {!userPreferences ||
                       (!Object.values({ ...(userPreferences ?? {}), id: undefined }).some(Boolean) && (
                         <li>No preferences selected yet</li>
@@ -501,40 +497,40 @@ export default function ChatPage() {
           <div className="space-y-4 py-2">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <Label htmlFor="reading">Reading support</Label>
+                <Label htmlFor="reading">Dyslexia</Label>
                 <p className="text-sm text-muted-foreground">Simplify text, add summaries & scaffolds</p>
               </div>
               <Switch
                 id="reading"
-                checked={editPrefs.has_reading_difficulty}
-                onCheckedChange={toggleField("has_reading_difficulty")}
-                aria-label="Toggle reading support"
+                checked={editPrefs.dyslexia}
+                onCheckedChange={toggleField("dyslexia")}
+                aria-label="Toggle Dyslexia"
               />
             </div>
 
             <div className="flex items-center justify-between gap-4">
               <div>
-                <Label htmlFor="motion">Motion sensitivity</Label>
+                <Label htmlFor="motion">cognitive_impairment</Label>
                 <p className="text-sm text-muted-foreground">Reduce/avoid motion & parallax</p>
               </div>
               <Switch
                 id="motion"
-                checked={editPrefs.has_motion_sensitivity}
-                onCheckedChange={toggleField("has_motion_sensitivity")}
-                aria-label="Toggle motion sensitivity"
+                checked={editPrefs.cognitive_impairment}
+                onCheckedChange={toggleField("cognitive_impairment")}
+                aria-label="Toggle cognitive_impairment"
               />
             </div>
 
             <div className="flex items-center justify-between gap-4">
               <div>
-                <Label htmlFor="color">Color sensitivity</Label>
+                <Label htmlFor="color">visual_impairment</Label>
                 <p className="text-sm text-muted-foreground">Avoid problematic color pairings</p>
               </div>
               <Switch
                 id="color"
-                checked={editPrefs.has_color_sensitivity}
-                onCheckedChange={toggleField("has_color_sensitivity")}
-                aria-label="Toggle color sensitivity"
+                checked={editPrefs.visual_impairment}
+                onCheckedChange={toggleField("visual_impairment")}
+                aria-label="Toggle visual_impairment"
               />
             </div>
 
@@ -545,8 +541,8 @@ export default function ChatPage() {
               </div>
               <Switch
                 id="largeText"
-                checked={editPrefs.prefers_large_text}
-                onCheckedChange={toggleField("prefers_large_text")}
+                checked={editPrefs.adhd}
+                onCheckedChange={toggleField("adhd")}
                 aria-label="Toggle large text"
               />
             </div>
@@ -558,22 +554,9 @@ export default function ChatPage() {
               </div>
               <Switch
                 id="reducedMotion"
-                checked={editPrefs.prefers_reduced_motion}
-                onCheckedChange={toggleField("prefers_reduced_motion")}
+                checked={editPrefs.esl_simple_english}
+                onCheckedChange={toggleField("esl_simple_english")}
                 aria-label="Toggle reduced motion"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="highContrast">High contrast</Label>
-                <p className="text-sm text-muted-foreground">Boost contrast for readability</p>
-              </div>
-              <Switch
-                id="highContrast"
-                checked={editPrefs.prefers_high_contrast}
-                onCheckedChange={toggleField("prefers_high_contrast")}
-                aria-label="Toggle high contrast mode"
               />
             </div>
           </div>

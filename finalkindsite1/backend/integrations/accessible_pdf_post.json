@@ -1,0 +1,20 @@
+{
+  "name": "accessible_pdf_post",
+  "server": "https://kindsite-1.onrender.com",
+  "request": {
+    "method": "POST",
+    "url": "/process",
+    "contentType": "multipart/form-data",
+    "fields": [
+      { "name": "accessibility_preset", "type": "string", "value": "cognitive_impairment" },
+      { "name": "file_input", "type": "file", "from": "chatbox.attachments[0]" }
+    ]
+  },
+  "response": {
+    "type": "json",
+    "map": {
+      "summary_markdown": "modified_content",
+      "accessible_pdf_url": "pdf_url"
+    }
+  }
+}

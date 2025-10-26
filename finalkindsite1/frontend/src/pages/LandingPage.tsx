@@ -65,7 +65,7 @@ export default function LandingPage() {
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty animate-fade-in-up delay-300">
               Transform educational content into accessible formats tailored to your learning style. Whether you have
-              dyslexia, motion sensitivity, or other accessibility needs, we empower every learner.
+              dyslexia, cognitive_impairment, or other accessibility needs, we empower every learner.
             </p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center animate-fade-in-up delay-400">
               <Button

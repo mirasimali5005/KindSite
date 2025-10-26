@@ -80,9 +80,9 @@ export default function LandingPage() {
                   <div className="rounded-lg bg-primary/10 p-3" aria-hidden="true">
                     <FileText className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Reading Support</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Dyslexia</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    Optimized text formatting for dyslexia and reading difficulties with adjustable fonts and spacing.
+                    Optimized text formatting for dyslexia and dyslexia with adjustable fonts and spacing.
                   </p>
                 </CardContent>
               </Card>
@@ -95,18 +95,6 @@ export default function LandingPage() {
                   <h3 className="text-lg font-semibold text-foreground">Motion Control</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     Reduced motion interfaces for users sensitive to animations and movement.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="rounded-lg bg-primary/10 p-3" aria-hidden="true">
-                    <Palette className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Color Adjustments</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    High contrast modes and color-blind friendly palettes for better visibility.
                   </p>
                 </CardContent>
               </Card>

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "AccessibleNow - Make Content Accessible for Everyone",
   description:
-    "Transform PDFs, images, and documents into accessible formats for people with dyslexia, motion sensitivity, and other accessibility needs.",
+    "Transform PDFs, images, and documents into accessible formats for people with dyslexia, cognitive_impairment, and other accessibility needs.",
     generator: 'v0.app'
 }
 

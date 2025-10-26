@@ -12,22 +12,20 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 interface PreferencesForm {
-  has_reading_difficulty: boolean
-  has_motion_sensitivity: boolean
-  has_color_sensitivity: boolean
-  prefers_large_text: boolean
-  prefers_reduced_motion: boolean
-  prefers_high_contrast: boolean
+  dyslexia: boolean
+  cognitive_impairment: boolean
+  visual_impairment: boolean
+  adhd: boolean
+  esl_simple_english: boolean
 }
 
 export default function PreferencesPage() {
   const [preferences, setPreferences] = useState<PreferencesForm>({
-    has_reading_difficulty: false,
-    has_motion_sensitivity: false,
-    has_color_sensitivity: false,
-    prefers_large_text: false,
-    prefers_reduced_motion: false,
-    prefers_high_contrast: false,
+    dyslexia: false,
+    cognitive_impairment: false,
+    visual_impairment: false,
+    adhd: false,
+    esl_simple_english: false,
   })
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -54,12 +52,11 @@ export default function PreferencesPage() {
 
       if (existingPrefs) {
         setPreferences({
-          has_reading_difficulty: existingPrefs.has_reading_difficulty,
-          has_motion_sensitivity: existingPrefs.has_motion_sensitivity,
-          has_color_sensitivity: existingPrefs.has_color_sensitivity,
-          prefers_large_text: existingPrefs.prefers_large_text,
-          prefers_reduced_motion: existingPrefs.prefers_reduced_motion,
-          prefers_high_contrast: existingPrefs.prefers_high_contrast,
+          dyslexia: existingPrefs.dyslexia,
+          cognitive_impairment: existingPrefs.cognitive_impairment,
+          visual_impairment: existingPrefs.visual_impairment,
+          adhd: existingPrefs.adhd,
+          esl_simple_english: existingPrefs.esl_simple_english,
         })
       }
 
@@ -128,23 +125,23 @@ export default function PreferencesPage() {
           <CardContent>
             <form onSubmit={handleSubmit}>
               <div className="space-y-8">
-                {/* Reading Difficulties Section */}
+                {/* dyslexia Section */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Reading & Text</h3>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <Checkbox
-                        id="reading-difficulty"
-                        checked={preferences.has_reading_difficulty}
-                        onCheckedChange={() => handleCheckboxChange("has_reading_difficulty")}
-                        aria-describedby="reading-difficulty-description"
+                        id="dyslexia"
+                        checked={preferences.dyslexia}
+                        onCheckedChange={() => handleCheckboxChange("dyslexia")}
+                        aria-describedby="dyslexia-description"
                       />
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="reading-difficulty" className="cursor-pointer font-medium">
-                          I have reading difficulties (e.g., dyslexia)
+                        <Label htmlFor="dyslexia" className="cursor-pointer font-medium">
+                          I have dyslexia (e.g., dyslexia)
                         </Label>
                         <p
-                          id="reading-difficulty-description"
+                          id="dyslexia-description"
                           className="text-sm text-muted-foreground leading-relaxed"
                         >
                           We'll use dyslexia-friendly fonts and optimized text formatting
@@ -155,8 +152,8 @@ export default function PreferencesPage() {
                     <div className="flex items-start gap-3">
                       <Checkbox
                         id="large-text"
-                        checked={preferences.prefers_large_text}
-                        onCheckedChange={() => handleCheckboxChange("prefers_large_text")}
+                        checked={preferences.adhd}
+                        onCheckedChange={() => handleCheckboxChange("adhd")}
                         aria-describedby="large-text-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -171,23 +168,23 @@ export default function PreferencesPage() {
                   </div>
                 </div>
 
-                {/* Motion Sensitivity Section */}
+                {/* cognitive_impairment Section */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Motion & Animation</h3>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <Checkbox
-                        id="motion-sensitivity"
-                        checked={preferences.has_motion_sensitivity}
-                        onCheckedChange={() => handleCheckboxChange("has_motion_sensitivity")}
-                        aria-describedby="motion-sensitivity-description"
+                        id="cognitive_impairment"
+                        checked={preferences.cognitive_impairment}
+                        onCheckedChange={() => handleCheckboxChange("cognitive_impairment")}
+                        aria-describedby="cognitive_impairment-description"
                       />
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="motion-sensitivity" className="cursor-pointer font-medium">
+                        <Label htmlFor="cognitive_impairment" className="cursor-pointer font-medium">
                           I'm sensitive to motion and animations
                         </Label>
                         <p
-                          id="motion-sensitivity-description"
+                          id="cognitive_impairment-description"
                           className="text-sm text-muted-foreground leading-relaxed"
                         >
                           We'll avoid content with excessive movement or animations
@@ -198,8 +195,8 @@ export default function PreferencesPage() {
                     <div className="flex items-start gap-3">
                       <Checkbox
                         id="reduced-motion"
-                        checked={preferences.prefers_reduced_motion}
-                        onCheckedChange={() => handleCheckboxChange("prefers_reduced_motion")}
+                        checked={preferences.esl_simple_english}
+                        onCheckedChange={() => handleCheckboxChange("esl_simple_english")}
                         aria-describedby="reduced-motion-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -220,37 +217,21 @@ export default function PreferencesPage() {
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <Checkbox
-                        id="color-sensitivity"
-                        checked={preferences.has_color_sensitivity}
-                        onCheckedChange={() => handleCheckboxChange("has_color_sensitivity")}
-                        aria-describedby="color-sensitivity-description"
+                        id="visual_impairment"
+                        checked={preferences.visual_impairment}
+                        onCheckedChange={() => handleCheckboxChange("visual_impairment")}
+                        aria-describedby="visual_impairment-description"
                       />
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="color-sensitivity" className="cursor-pointer font-medium">
+                        <Label htmlFor="visual_impairment" className="cursor-pointer font-medium">
                           I'm sensitive to bright colors
                         </Label>
-                        <p id="color-sensitivity-description" className="text-sm text-muted-foreground leading-relaxed">
+                        <p id="visual_impairment-description" className="text-sm text-muted-foreground leading-relaxed">
                           We'll use softer, more comfortable color palettes
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        id="high-contrast"
-                        checked={preferences.prefers_high_contrast}
-                        onCheckedChange={() => handleCheckboxChange("prefers_high_contrast")}
-                        aria-describedby="high-contrast-description"
-                      />
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="high-contrast" className="cursor-pointer font-medium">
-                          I prefer high contrast
-                        </Label>
-                        <p id="high-contrast-description" className="text-sm text-muted-foreground leading-relaxed">
-                          Text and elements will have stronger contrast for better visibility
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
