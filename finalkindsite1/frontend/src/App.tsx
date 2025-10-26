@@ -8,8 +8,11 @@ import SignUpPage from "./pages/SignUpPage"
 import SignUpSuccessPage from "./pages/SignUpSuccessPage"
 import PreferencesPage from "./pages/PreferencesPage"
 import ChatPage from "./pages/ChatPage"
+import { useInteractiveEffects } from './useInteractiveEffects';
+
 
 function App() {
+  useInteractiveEffects();
   return (
     <ThemeProvider>
       <AuthProvider>
