@@ -146,12 +146,11 @@ def save_preferences():
     data = request.json
     preferences = {
         "id": user.id,
-        "has_reading_difficulty": data.get('has_reading_difficulty', False),
-        "has_motion_sensitivity": data.get('has_motion_sensitivity', False),
-        "has_color_sensitivity": data.get('has_color_sensitivity', False),
-        "prefers_large_text": data.get('prefers_large_text', False),
-        "prefers_reduced_motion": data.get('prefers_reduced_motion', False),
-        "prefers_high_contrast": data.get('prefers_high_contrast', False)
+        "dyslexia": data.get('dyslexia', False),
+        "cognitive_impairment": data.get('cognitive_impairment', False),
+        "visual_impairment": data.get('visual_impairment', False),
+        "adhd": data.get('adhd', False),
+        "esl_simple_english": data.get('esl_simple_english', False),
     }
     
     try:
@@ -186,23 +185,20 @@ def chat():
     # Build user instructions from preferences
     user_instructions = "User's accessibility preferences:\n"
     
-    if preferences.get('has_reading_difficulty'):
-        user_instructions += "- Has reading difficulties (e.g., dyslexia). Use clear, simple language with short sentences and paragraphs.\n"
+    if preferences.get('dyslexia'):
+        user_instructions += "- Has dyslexia (e.g., dyslexia). Use clear, simple language with short sentences and paragraphs.\n"
     
-    if preferences.get('prefers_large_text'):
+    if preferences.get('adhd'):
         user_instructions += "- Prefers larger text. When providing formatted content, emphasize readability.\n"
     
-    if preferences.get('has_motion_sensitivity'):
+    if preferences.get('cognitive_impairment'):
         user_instructions += "- Sensitive to motion. Avoid suggesting animated or moving content.\n"
     
-    if preferences.get('prefers_reduced_motion'):
+    if preferences.get('esl_simple_english'):
         user_instructions += "- Prefers reduced motion in interfaces.\n"
     
-    if preferences.get('has_color_sensitivity'):
+    if preferences.get('visual_impairment'):
         user_instructions += "- Sensitive to bright colors. Suggest softer, more comfortable color palettes.\n"
-    
-    if preferences.get('prefers_high_contrast'):
-        user_instructions += "- Prefers high contrast for better visibility.\n"
     
     # Build system prompt
     system_prompt = f"""You are an accessibility assistant that helps convert inaccessible content (PDFs, images, documents, websites) into more accessible formats.

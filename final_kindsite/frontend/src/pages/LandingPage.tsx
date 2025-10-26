@@ -47,7 +47,7 @@ export default function LandingPage() {
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty">
               Transform PDFs, images, and documents into accessible formats tailored to your needs. Whether you have
-              dyslexia, motion sensitivity, or other accessibility requirements, we've got you covered.
+              dyslexia, cognitive_impairment, or other accessibility requirements, we've got you covered.
             </p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="text-lg">

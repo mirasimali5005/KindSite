@@ -253,12 +253,11 @@ export default function ChatPage() {
                 <div className="rounded-lg border border-border bg-muted/50 p-4 text-left">
                   <h3 className="font-semibold text-foreground">Your preferences:</h3>
                   <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    {userPreferences?.has_reading_difficulty && <li>Reading support enabled</li>}
-                    {userPreferences?.has_motion_sensitivity && <li>Motion sensitivity mode</li>}
-                    {userPreferences?.has_color_sensitivity && <li>Color sensitivity mode</li>}
-                    {userPreferences?.prefers_large_text && <li>Large text preferred</li>}
-                    {userPreferences?.prefers_reduced_motion && <li>Reduced motion</li>}
-                    {userPreferences?.prefers_high_contrast && <li>High contrast mode</li>}
+                    {userPreferences?.dyslexia && <li>Dyslexia enabled</li>}
+                    {userPreferences?.cognitive_impairment && <li>cognitive_impairment mode</li>}
+                    {userPreferences?.visual_impairment && <li>visual_impairment mode</li>}
+                    {userPreferences?.adhd && <li>Large text preferred</li>}
+                    {userPreferences?.esl_simple_english && <li>Reduced motion</li>}
                   </ul>
                 </div>
               </div>

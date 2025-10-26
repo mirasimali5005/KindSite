@@ -103,14 +103,16 @@ export default function PreferencesPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center p-6">
-      <div className="w-full max-w-2xl">
-        <Card>
+    <div className="flex min-h-screen w-full items-center justify-center p-6 bg-gradient-to-br from-background via-primary/5 to-accent/5">
+      <div className="w-full max-w-2xl animate-fade-in-up">
+        <Card className="border-primary/20 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl">Set Your Accessibility Preferences</CardTitle>
+            <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Set Your Learning Preferences
+            </CardTitle>
             <CardDescription className="leading-relaxed">
-              Help us understand your needs so we can provide the best experience. You can change these settings
-              anytime.
+              Help us understand your needs so we can provide the best learning experience. You can change these
+              settings anytime.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -120,11 +122,11 @@ export default function PreferencesPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Reading & Text</h3>
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg transition-all hover:bg-primary/5">
                       <Checkbox
                         id="dyslexia"
                         checked={preferences.dyslexia}
-                        onChange={() => handleCheckboxChange("dyslexia")}
+                        onCheckedChange={() => handleCheckboxChange("dyslexia")}
                         aria-describedby="dyslexia-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -140,11 +142,11 @@ export default function PreferencesPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg transition-all hover:bg-primary/5">
                       <Checkbox
                         id="large-text"
                         checked={preferences.adhd}
-                        onChange={() => handleCheckboxChange("adhd")}
+                        onCheckedChange={() => handleCheckboxChange("adhd")}
                         aria-describedby="large-text-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -163,11 +165,11 @@ export default function PreferencesPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Motion & Animation</h3>
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg transition-all hover:bg-primary/5">
                       <Checkbox
                         id="cognitive_impairment"
                         checked={preferences.cognitive_impairment}
-                        onChange={() => handleCheckboxChange("cognitive_impairment")}
+                        onCheckedChange={() => handleCheckboxChange("cognitive_impairment")}
                         aria-describedby="cognitive_impairment-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -183,11 +185,11 @@ export default function PreferencesPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg transition-all hover:bg-primary/5">
                       <Checkbox
                         id="reduced-motion"
                         checked={preferences.esl_simple_english}
-                        onChange={() => handleCheckboxChange("esl_simple_english")}
+                        onCheckedChange={() => handleCheckboxChange("esl_simple_english")}
                         aria-describedby="reduced-motion-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -206,11 +208,11 @@ export default function PreferencesPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Color & Contrast</h3>
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg transition-all hover:bg-primary/5">
                       <Checkbox
                         id="visual_impairment"
                         checked={preferences.visual_impairment}
-                        onChange={() => handleCheckboxChange("visual_impairment")}
+                        onCheckedChange={() => handleCheckboxChange("visual_impairment")}
                         aria-describedby="visual_impairment-description"
                       />
                       <div className="flex flex-col gap-1">
@@ -221,7 +223,7 @@ export default function PreferencesPage() {
                           We'll use softer, more comfortable color palettes
                         </p>
                       </div>
-                    </div>  
+                    </div>
                   </div>
                 </div>
 
@@ -232,7 +234,11 @@ export default function PreferencesPage() {
                 )}
 
                 <div className="flex gap-4">
-                  <Button type="submit" className="flex-1" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-105"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

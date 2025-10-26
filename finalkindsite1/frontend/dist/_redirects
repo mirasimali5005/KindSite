@@ -1,0 +1,2 @@
+/process        https://kindsite-1.onrender.com/process        200
+/downloads/*    https://kindsite-1.onrender.com/downloads/:splat    200
