@@ -1,577 +1,173 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useRef, type FormEvent } from "react"
-import { useNavigate } from "react-router-dom"
-import { useAuth } from "../contexts/AuthContext"
-import { supabase } from "../lib/supabase"
+import { useState, useRef, type FormEvent } from "react"
 import { Button } from "../components/ui/button"
 import { Card } from "../components/ui/card"
 import { Input } from "../components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
-import { Label } from "../components/ui/label"
-import { Switch } from "../components/ui/switch"
-import { Loader2, Send, Upload, LogOut, Settings, BookOpen, Edit3 } from "lucide-react"
-import { ThemeToggle } from "../components/ThemeToggle"
-import ConversationsSheet from "../components/ConversationsSheet"
-import { api } from "../lib/api"
+import { Loader2, Send, Upload, Download } from "lucide-react"
 
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
+  pdfHref?: string
 }
 
-type Preferences = {
-  id: string
-  dyslexia: boolean
-  cognitive_impairment: boolean
-  visual_impairment: boolean
-  adhd: boolean
-  esl_simple_english: boolean
-}
+// IMPORTANT: use the proxy path, not the full Render URL
+const API_URL = "/process"
 
-const DEFAULT_PREFS: Omit<Preferences, "id"> = {
-  dyslexia: false,
-  cognitive_impairment: false,
-  visual_impairment: false,
-  adhd: false,
-  esl_simple_english: false,
-}
+// Keep links same-origin so the proxy also serves /downloads/*
+const toProxiedUrl = (u?: string | null) => (u || "").startsWith("/downloads/") ? u! : (u || "")
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [userPreferences, setUserPreferences] = useState<Preferences | null>(null)
-  const [sessionId] = useState(() => crypto.randomUUID())
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  // Dialog state + edit buffer
-  const [prefOpen, setPrefOpen] = useState(false)
-  const [editPrefs, setEditPrefs] = useState<Omit<Preferences, "id">>(DEFAULT_PREFS)
-  const [saving, setSaving] = useState(false)
-  const [conversationId, setConversationId] = useState<string | null>(null)
-
-
-  useEffect(() => {
-    const loadPreferences = async () => {
-      if (!user) return
-      try {
-        const { data, error } = await supabase
-          .from("user_preferences")
-          .select("*")
-          .eq("id", user.id)
-          .single()
-
-        if (error && error.code !== "PGRST116") {
-          // PGRST116 = No rows found
-          console.error("Error loading preferences:", error)
-        }
-
-        if (data) {
-          setUserPreferences(data as Preferences)
-          setEditPrefs({
-            dyslexia: !!data.dyslexia,
-            cognitive_impairment: !!data.cognitive_impairment,
-            visual_impairment: !!data.visual_impairment,
-            adhd: !!data.adhd,
-            esl_simple_english: !!data.esl_simple_english,
-          })
-        } else {
-          // If no row, prep defaults
-          setUserPreferences({
-            id: user.id,
-            ...DEFAULT_PREFS,
-          })
-          setEditPrefs(DEFAULT_PREFS)
-        }
-      } catch (err) {
-        console.error("Error loading preferences:", err)
-      }
-    }
-
-    loadPreferences()
-  }, [user])
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate("/")
+  const push = (m: Omit<Message, "id">) => {
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), ...m }])
+    setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50)
   }
 
-  const handleSubmit = async (e: FormEvent) => {
+  async function callAPI(fd: FormData) {
+    const r = await fetch(API_URL, { method: "POST", body: fd })
+    if (!r.ok) throw new Error(`API ${r.status}`)
+    return r.json() as Promise<{ modified_content?: string; pdf_url?: string }>
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!inputValue.trim() || isStreaming || !user) return
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: inputValue,
-    }
-
-    setMessages((prev) => [...prev, userMessage])
+    if (!inputValue.trim() || busy) return
+    const text = inputValue.trim()
     setInputValue("")
-    setIsStreaming(true)
-
+    push({ role: "user", content: text })
+    setBusy(true)
     try {
-      const token = (await supabase.auth.getSession()).data.session?.access_token
-      const cid = await ensureConversation() // <- ensure thread exists
-
-      const response = await fetch("http://localhost:5000/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({ role: m.role, content: m.content })),
-          conversationId: cid,       // <- IMPORTANT
-          // sessionId,               // keep only if your backend still uses it
-        }),
-      })
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "",
-      }
-      setMessages((prev) => [...prev, assistantMessage])
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value)
-          const lines = chunk.split("\n")
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue
-            const data = JSON.parse(line.slice(6))
-
-            if (data.type === "text") {
-              assistantMessage.content += data.content
-              setMessages((prev) => prev.map((m) => (m.id === assistantMessage.id ? { ...assistantMessage } : m)))
-            } else if (data.type === "done") {
-              // backend should echo conversationId here on first turn
-              if (data.conversationId && !conversationId) setConversationId(data.conversationId)
-              break
-            } else if (data.type === "error") {
-              console.error("Stream error:", data.error)
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Chat error:", error)
+      const fd = new FormData()
+      fd.append("text_input", text)
+      fd.append("accessibility_preset", "cognitive_impairment")
+      const data = await callAPI(fd)
+      const pdf = toProxiedUrl(data.pdf_url)
+      push({ role: "assistant", content: pdf ? "PDF ready." : "No PDF returned.", pdfHref: pdf || undefined })
+    } catch (e: any) {
+      push({ role: "assistant", content: `Error: ${e.message || e}` })
     } finally {
-      setIsStreaming(false)
+      setBusy(false)
     }
   }
 
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !user) return
-
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string
-
-      const userMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: `I've uploaded a file: ${file.name}. Please make it more accessible based on my preferences.`,
-      }
-
-      setMessages((prev) => [...prev, userMessage])
-      setIsStreaming(true)
-
-      try {
-        const token = (await supabase.auth.getSession()).data.session?.access_token
-        const cid = await ensureConversation() // <- ensure thread exists
-
-        const response = await fetch("http://localhost:5000/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            messages: [...messages, userMessage].map((m) => ({
-              role: m.role,
-              content: m.content,
-              experimental_attachments:
-                m.role === "user" ? [{ name: file.name, contentType: file.type, url: base64 }] : undefined,
-            })),
-            conversationId: cid,     // <- IMPORTANT
-            // sessionId,             // keep only if your backend still uses it
-          }),
-        })
-
-        const streamReader = response.body?.getReader()
-        const decoder = new TextDecoder()
-
-        const assistantMessage: Message = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "",
-        }
-        setMessages((prev) => [...prev, assistantMessage])
-
-        if (streamReader) {
-          while (true) {
-            const { done, value } = await streamReader.read()
-            if (done) break
-
-            const chunk = decoder.decode(value)
-            const lines = chunk.split("\n")
-
-            for (const line of lines) {
-              if (!line.startsWith("data: ")) continue
-              const data = JSON.parse(line.slice(6))
-
-              if (data.type === "text") {
-                assistantMessage.content += data.content
-                setMessages((prev) => prev.map((m) => (m.id === assistantMessage.id ? { ...assistantMessage } : m)))
-              } else if (data.type === "done") {
-                if (data.conversationId && !conversationId) setConversationId(data.conversationId)
-                break
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error("File upload error:", error)
-      } finally {
-        setIsStreaming(false)
-      }
-    }
-    reader.readAsDataURL(file)
-
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }
-
-
-  const openPrefEditor = () => {
-    setPrefOpen(true)
-  }
-
-  const toggleField =
-    (key: keyof Omit<Preferences, "id">) =>
-    (checked: boolean) => {
-      setEditPrefs((prev) => ({ ...prev, [key]: checked }))
-    }
-
-  const savePreferences = async () => {
-    if (!user) return
-    setSaving(true)
+    if (!file || busy) return
+    push({ role: "user", content: `Uploaded: ${file.name}` })
+    setBusy(true)
     try {
-      const payload = {
-        id: user.id,
-        ...editPrefs,
-      }
-
-      // Use upsert to create row if none exists
-      const { data, error } = await supabase.from("user_preferences").upsert(payload).select().single()
-      if (error) throw error
-
-      setUserPreferences(data as Preferences)
-      setPrefOpen(false)
-    } catch (err) {
-      console.error("Saving preferences failed:", err)
-      // optional: surface a toast
+      const fd = new FormData()
+      fd.append("file_input", file, file.name)
+      fd.append("accessibility_preset", "cognitive_impairment")
+      const data = await callAPI(fd)
+      const pdf = toProxiedUrl(data.pdf_url)
+      push({ role: "assistant", content: pdf ? "PDF ready." : "No PDF returned.", pdfHref: pdf || undefined })
+    } catch (e: any) {
+      push({ role: "assistant", content: `Error: ${e.message || e}` })
     } finally {
-      setSaving(false)
+      setBusy(false)
+      if (fileRef.current) fileRef.current.value = ""
     }
   }
 
-  async function ensureConversation(): Promise<string> {
-  if (conversationId) return conversationId
-  const res = await api.createConversation("New conversation")
-  const cid = res.conversation.id as string
-  setConversationId(cid)
-  return cid
-  }
-
-  async function openConversation(cid: string) {
-  const res = await api.getConversationMessages(cid)
-  const loaded: Message[] = (res.messages ?? []).map((m: any) => ({
-    id: m.id,
-    role: m.role,
-    content: m.content,
-  }))
-  setConversationId(cid)
-  setMessages(loaded)
+  // Guaranteed PDF download: click an <a download> that points to the proxied /downloads/... path.
+  function DownloadButton({ href }: { href: string }) {
+    return (
+      <Button
+        asChild
+        className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+      >
+        <a href={href} download target="_blank" rel="noopener noreferrer">
+          <Download className="h-4 w-4 mr-2" />
+          Download Accessible PDF
+        </a>
+      </Button>
+    )
   }
 
   return (
     <div className="flex h-screen flex-col bg-gradient-to-br from-background via-background to-primary/5">
-      <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2 transition-transform hover:scale-105">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-2">
-              <BookOpen className="h-5 w-5 text-white" aria-hidden="true" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              LearnAccess
-            </span>
-          </div>
-          <nav aria-label="User navigation">
-            <div className="flex items-center gap-2">
-              <ConversationsSheet
-                currentConversationId={conversationId}
-                onOpenConversation={openConversation}
-                onNewConversation={(cid) => {
-                  setConversationId(cid)
-                  setMessages([])
-                }}
-              />
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/preferences")}
-                aria-label="Settings"
-                className="hover:bg-primary/10 transition-all hover:scale-110"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                aria-label="Sign out"
-                className="hover:bg-destructive/10 transition-all hover:scale-110"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </div>
-          </nav>
-        </div>
+      <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg p-4 text-center text-lg font-semibold">
+        LearnAccess Chat
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4" role="main" aria-label="Chat messages">
+      <main className="flex-1 overflow-y-auto p-4">
         <div className="container mx-auto max-w-3xl space-y-4">
-          {messages.length === 0 && (
-            <Card className="p-8 text-center animate-fade-in-up border-primary/20">
-              <h2 className="text-2xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Welcome to LearnAccess
-              </h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed">
-                Upload educational content, and I'll help make it more accessible based on your learning preferences.
-              </p>
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-lg border border-border bg-muted/50 p-4 text-left transition-all hover:border-primary/50 hover:shadow-md">
-                  <h3 className="font-semibold text-foreground">Try asking:</h3>
-                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <li>"Make this PDF easier to read"</li>
-                    <li>"Convert this image to accessible text"</li>
-                    <li>"Simplify this document"</li>
-                  </ul>
-                </div>
-
-                {/* CLICKABLE PREFERENCES CARD */}
-                <button
-                  type="button"
-                  onClick={openPrefEditor}
-                  className="text-left rounded-lg border border-border bg-muted/50 p-4 transition-all hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  aria-label="Open preferences editor"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">Your preferences</h3>
-                    <Button type="button" size="sm" variant="outline" className="gap-2">
-                      <Edit3 className="h-4 w-4" />
-                      Edit
-                    </Button>
-                  </div>
-                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    {userPreferences?.dyslexia && <li>✓ Dyslexia enabled</li>}
-                    {userPreferences?.cognitive_impairment && <li>✓ cognitive_impairment mode</li>}
-                    {userPreferences?.visual_impairment && <li>✓ visual_impairment mode</li>}
-                    {userPreferences?.adhd && <li>✓ Large text preferred</li>}
-                    {userPreferences?.esl_simple_english && <li>✓ Reduced motion</li>}
-                    {!userPreferences ||
-                      (!Object.values({ ...(userPreferences ?? {}), id: undefined }).some(Boolean) && (
-                        <li>No preferences selected yet</li>
-                      ))}
-                  </ul>
-                </button>
-              </div>
-            </Card>
-          )}
-
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
-              role="article"
-              aria-label={`${message.role === "user" ? "Your" : "Assistant"} message`}
-            >
+          {messages.map((m) => (
+            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <Card
-                className={`max-w-[80%] p-4 transition-all hover:shadow-lg ${
-                  message.role === "user"
-                    ? "bg-gradient-to-br from-primary to-accent text-white border-primary/50"
-                    : "bg-card border-border/50"
+                className={`max-w-[80%] p-4 ${
+                  m.role === "user"
+                    ? "bg-gradient-to-r from-primary to-accent text-white"
+                    : "bg-card border-border"
                 }`}
               >
-                <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                <div className="whitespace-pre-wrap">{m.content}</div>
+
+                {m.pdfHref && (
+                  <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+                    <DownloadButton href={m.pdfHref} />
+                    <a
+                      href={m.pdfHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm underline text-green-600"
+                    >
+                      Open in new tab
+                    </a>
+                  </div>
+                )}
               </Card>
             </div>
           ))}
 
-          {isStreaming && (
-            <div className="flex justify-start animate-fade-in" role="status" aria-live="polite">
-              <Card className="max-w-[80%] p-4 bg-card border-primary/30">
+          {busy && (
+            <div className="flex justify-start">
+              <Card className="max-w-[80%] p-4">
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span className="text-muted-foreground">Thinking...</span>
+                  <span>Processing…</span>
                 </div>
               </Card>
             </div>
           )}
 
-          <div ref={messagesEndRef} />
+          <div ref={endRef} />
         </div>
       </main>
 
       <footer className="border-t border-border/50 bg-card/80 backdrop-blur-lg p-4">
-        <form onSubmit={handleSubmit} className="container mx-auto max-w-3xl">
-          <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,image/*,application/pdf"
-              onChange={handleFileUpload}
-              className="hidden"
-              aria-label="Upload file"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isStreaming}
-              aria-label="Upload file"
-              className="hover:bg-primary/10 hover:border-primary/50 transition-all hover:scale-110"
-            >
-              <Upload className="h-5 w-5" />
-            </Button>
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Describe what you need help with..."
-              disabled={isStreaming}
-              className="flex-1 transition-all focus:border-primary/50"
-              aria-label="Message input"
-            />
-            <Button
-              type="submit"
-              disabled={isStreaming || !inputValue.trim()}
-              aria-label="Send message"
-              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all hover:scale-110"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
-          </div>
+        <form onSubmit={handleSubmit} className="container mx-auto max-w-3xl flex gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf"
+            onChange={handleFile}
+            className="hidden"
+          />
+          <Button type="button" variant="outline" size="icon" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <Upload className="h-5 w-5" />
+          </Button>
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Type text to convert…"
+            disabled={busy}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={busy || !inputValue.trim()} className="bg-gradient-to-r from-primary to-accent">
+            <Send className="h-5 w-5" />
+          </Button>
         </form>
       </footer>
-
-      {/* Preferences Dialog */}
-      <Dialog open={prefOpen} onOpenChange={setPrefOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit learning & accessibility preferences</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="reading">Dyslexia</Label>
-                <p className="text-sm text-muted-foreground">Simplify text, add summaries & scaffolds</p>
-              </div>
-              <Switch
-                id="reading"
-                checked={editPrefs.dyslexia}
-                onCheckedChange={toggleField("dyslexia")}
-                aria-label="Toggle Dyslexia"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="motion">cognitive_impairment</Label>
-                <p className="text-sm text-muted-foreground">Reduce/avoid motion & parallax</p>
-              </div>
-              <Switch
-                id="motion"
-                checked={editPrefs.cognitive_impairment}
-                onCheckedChange={toggleField("cognitive_impairment")}
-                aria-label="Toggle cognitive_impairment"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="color">visual_impairment</Label>
-                <p className="text-sm text-muted-foreground">Avoid problematic color pairings</p>
-              </div>
-              <Switch
-                id="color"
-                checked={editPrefs.visual_impairment}
-                onCheckedChange={toggleField("visual_impairment")}
-                aria-label="Toggle visual_impairment"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="largeText">Large text</Label>
-                <p className="text-sm text-muted-foreground">Prefer larger font sizes</p>
-              </div>
-              <Switch
-                id="largeText"
-                checked={editPrefs.adhd}
-                onCheckedChange={toggleField("adhd")}
-                aria-label="Toggle large text"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="reducedMotion">Reduced motion</Label>
-                <p className="text-sm text-muted-foreground">Minimize non-essential animations</p>
-              </div>
-              <Switch
-                id="reducedMotion"
-                checked={editPrefs.esl_simple_english}
-                onCheckedChange={toggleField("esl_simple_english")}
-                aria-label="Toggle reduced motion"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPrefOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={savePreferences} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save preferences
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
