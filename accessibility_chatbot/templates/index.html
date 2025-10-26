@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Accessibility Chatbot</h1>
+
+        <form id="accessibilityForm" action="/process" method="post" enctype="multipart/form-data">
+            <div class="input-group">
+                <label for="text_input">Enter Text:</label>
+                <textarea id="text_input" name="text_input" rows="10" placeholder="Paste your text here..."></textarea>
+            </div>
+
+            <div class="input-group">
+                <label for="file_input">Upload File (Image or PDF):</label>
+                <input type="file" id="file_input" name="file_input" accept=".txt,.pdf,.jpg,.jpeg,.png">
+            </div>
+
+            <div class="input-group">
+                <label for="accessibility_preset">Choose Accessibility Service:</label>
+                <select id="accessibility_preset" name="accessibility_preset">
+                    {% for key, prompt_info in accessibility_prompts.items() %}
+                    <option value="{{ key }}" {% if key == 'dyslexia' %}selected{% endif %}>{{ prompt_info.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit">Process</button>
+        </form>
+
+        <div id="loading" class="hidden">Processing your request...</div>
+
+        <div id="results" class="hidden">
+            <h2>Results:</h2>
+            <div id="output_text"></div>
+            <a id="download_pdf_link" href="#" download class="hidden">Download Accessible PDF</a>
+        </div>
+
+        <div id="error_message" class="hidden"></div>
+    </div>
+
+    <script>
+        document.getElementById('accessibilityForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('error_message').classList.add('hidden');
+            document.getElementById('output_text').innerHTML = '';
+            document.getElementById('download_pdf_link').classList.add('hidden');
+
+            const formData = new FormData(event.target);
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Display markdown content in a readable way
+                    // You might want a markdown renderer here for better display
+                    document.getElementById('output_text').innerHTML = `<h3>Generated Text:</h3><div style="white-space: pre-wrap; word-wrap: break-word;">${data.modified_content}</div>`;
+                    if (data.pdf_url) {
+                        document.getElementById('download_pdf_link').href = data.pdf_url;
+                        document.getElementById('download_pdf_link').classList.remove('hidden');
+                    }
+                    document.getElementById('results').classList.remove('hidden');
+                } else {
+                    document.getElementById('error_message').textContent = `Error: ${data.error}`;
+                    document.getElementById('error_message').classList.remove('hidden');
+                }
+            } catch (error) {
+                document.getElementById('error_message').textContent = `An unexpected error occurred: ${error.message}`;
+                document.getElementById('error_message').classList.remove('hidden');
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
